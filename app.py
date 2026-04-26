@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify, render_template, send_file
-from elevenlabs import generate, set_api_key
+from elevenlabs.client import ElevenLabs
+
+client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
 import io
 import google.generativeai as genai
 import os
@@ -328,17 +330,20 @@ def tts():
     last_error = "Unknown error"
     for voice_id, model_id in MODELS_TO_TRY:
         try:
-            audio = generate(
-                text=text,
-                voice=voice_id,
-                model=model_id
-            )
-            return send_file(
-                io.BytesIO(audio),
-                mimetype="audio/mpeg",
-                as_attachment=False,
-                download_name="speech.mp3"
-            )
+           audio = client.text_to_speech.convert(
+    text=text,
+    voice_id=voice_id,
+    model_id=model_id
+)
+
+audio_bytes = b"".join(audio)
+
+return send_file(
+    io.BytesIO(audio_bytes),
+    mimetype="audio/mpeg",
+    as_attachment=False,
+    download_name="speech.mp3"
+)
         except Exception as e:
             last_error = str(e)
             continue
