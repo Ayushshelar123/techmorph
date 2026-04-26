@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TechMorph — Technical Language Transformer</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Devanagari:wght@400;600&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+   RESET & TOKENS
+═══════════════════════════════════════════════════════════ */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #070b14;
+      --bg2: #0c1220;
+      --surface: #101828;
+      --card: #131d2e;
+      --card2: #182236;
+      --border: rgba(99, 179, 237, 0.12);
+      --border2: rgba(99, 179, 237, 0.22);
+
+      --blue: #4f9cf9;
+      --cyan: #22d3ee;
+      --violet: #a78bfa;
+      --amber: #fbbf24;
+      --rose: #fb7185;
+      --green: #34d399;
+
+      --text: #e2eaf6;
+      --muted: #6b82a0;
+      --muted2: #4a607a;
+
+      --r-sm: 8px;
+      --r-md: 14px;
+      --r-lg: 20px;
+      --r-xl: 28px;
+
+      --font: 'Space Grotesk', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+   AMBIENT MESH BACKGROUND
+═══════════════════════════════════════════════════════════ */
+    .bg-mesh {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .bg-mesh::before {
+      content: '';
+      position: absolute;
+      top: -30%;
+      left: -20%;
+      width: 70vw;
+      height: 70vw;
+      background: radial-gradient(ellipse, rgba(79, 156, 249, 0.07) 0%, transparent 65%);
+      animation: drift1 18s ease-in-out infinite alternate;
+    }
+
+    .bg-mesh::after {
+      content: '';
+      position: absolute;
+      bottom: -20%;
+      right: -15%;
+      width: 60vw;
+      height: 60vw;
+      background: radial-gradient(ellipse, rgba(167, 139, 250, 0.06) 0%, transparent 65%);
+      animation: drift2 22s ease-in-out infinite alternate;
+    }
+
+    .bg-dot {
+      position: absolute;
+      top: 35%;
+      left: 55%;
+      width: 40vw;
+      height: 40vw;
+      background: radial-gradient(ellipse, rgba(34, 211, 238, 0.05) 0%, transparent 65%);
+      animation: drift3 15s ease-in-out infinite alternate;
+    }
+
+    @keyframes drift1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(5%, 8%) scale(1.1); } }
+    @keyframes drift2 { from { transform: translate(0, 0) scale(1); } to { transform: translate(-6%, -5%) scale(1.08); } }
+    @keyframes drift3 { from { transform: translate(0, 0); } to { transform: translate(-4%, 6%); } }
+
+    .grain {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════════ */
+    .wrapper {
+      position: relative;
+      z-index: 2;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 28px 24px 100px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════════════ */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 52px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+
+    .logo-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--violet) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      box-shadow: 0 0 24px rgba(79, 156, 249, 0.3);
+    }
+
+    .logo-text h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
+    .logo-text h1 em { font-style: normal; color: var(--cyan); }
+    .logo-text p { font-size: 11px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
+
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 16px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 13px;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-ghost:hover { color: var(--text); border-color: var(--border2); background: rgba(255,255,255,0.04); }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      display: inline-block;
+      animation: blink 2.5s ease infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ═══════════════════════════════════════════════════════════
+   NAV TABS
+═══════════════════════════════════════════════════════════ */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 5px;
+      width: fit-content;
+      margin-bottom: 36px;
+    }
+
+    .tab {
+      padding: 9px 22px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all .22s;
+      color: var(--muted);
+      border: none;
+      background: none;
+      font-family: var(--font);
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      color: #fff;
+      box-shadow: 0 2px 18px rgba(79, 156, 249, 0.35);
+    }
+
+    .tab:not(.active):hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+    /* ═══════════════════════════════════════════════════════════
+   PANELS
+═══════════════════════════════════════════════════════════ */
+    .panel { display: none; animation: panelIn .3s ease both; }
+    .panel.active { display: block; }
+
+    @keyframes panelIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    /* ═══════════════════════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════════════════════ */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      margin-bottom: 18px;
+      transition: border-color .2s;
+    }
+
+    .card:hover { border-color: var(--border2); }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted2);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-label::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 14px;
+      border-radius: 2px;
+      background: linear-gradient(to bottom, var(--blue), var(--violet));
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+   GRID
+═══════════════════════════════════════════════════════════ */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    @media (max-width: 820px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    /* ═══════════════════════════════════════════════════════════
+   FORM CONTROLS
+═══════════════════════════════════════════════════════════ */
+    .field { margin-bottom: 16px; }
+
+    .field-label { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 6px; letter-spacing: 0.4px; }
+
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      padding: 14px 16px;
+      resize: vertical;
+      line-height: 1.7;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(79,156,249,0.12); }
+    textarea::placeholder { color: var(--muted2); }
+
+    select {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      padding: 12px 40px 12px 16px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b82a0' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      transition: border-color .2s;
+    }
+
+    select:focus { outline: none; border-color: var(--blue); }
+
+    /* ═══════════════════════════════════════════════════════════
+   UPLOAD ZONE
+═══════════════════════════════════════════════════════════ */
+    .upload-zone {
+      border: 2px dashed rgba(99, 179, 237, 0.2);
+      border-radius: var(--r-md);
+      padding: 36px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .25s;
+      position: relative;
+      background: rgba(79, 156, 249, 0.03);
+    }
+
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--blue); background: rgba(79,156,249,0.07); }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+
+    .upload-icon { font-size: 36px; margin-bottom: 12px; }
+    .upload-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .upload-title span { color: var(--blue); }
+    .upload-sub { font-size: 12px; color: var(--muted); }
+
+    .upload-preview { margin-top: 14px; max-height: 180px; border-radius: var(--r-sm); object-fit: cover; display: none; width: 100%; border: 1px solid var(--border); }
+    .upload-name { margin-top: 8px; font-size: 12px; color: var(--cyan); font-family: var(--mono); display: none; }
+
+    /* ═══════════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════════ */
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
+
+    .btn {
+      padding: 11px 24px;
+      border-radius: 50px;
+      border: none;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue) 0%, #6366f1 100%);
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(79,156,249,0.28);
+    }
+
+    .btn-primary:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(79,156,249,0.42); }
+    .btn-primary:not(:disabled):active { transform: translateY(0); }
+
+    .btn-cyan {
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--green) 100%);
+      color: #07101d;
+    }
+
+    .btn-cyan:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(34,211,238,0.35); }
+
+    .btn-outline { background: transparent; border: 1px solid var(--border2); color: var(--text); }
+    .btn-outline:not(:disabled):hover { background: rgba(255,255,255,0.05); }
+
+    .btn.danger { background: transparent; border: 1px solid rgba(251,113,133,0.35); color: var(--rose); }
+    .btn.danger:hover { background: rgba(251,113,133,0.08); }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff;
+      animation: spin .65s linear infinite;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ═══════════════════════════════════════════════════════════
+   OCR RESULT BOX
+═══════════════════════════════════════════════════════════ */
+    .ocr-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 16px;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.75;
+      font-family: var(--mono);
+      white-space: pre-wrap;
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .ocr-box::-webkit-scrollbar { width: 4px; }
+    .ocr-box::-webkit-scrollbar-track { background: transparent; }
+    .ocr-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+    /* ═══════════════════════════════════════════════════════════
+   TERMS GRID
+═══════════════════════════════════════════════════════════ */
+    .terms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 16px; }
+
+    .term-card {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 18px 18px 16px;
+      transition: border-color .2s, transform .2s;
+      animation: riseIn .35s ease both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .term-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--blue), var(--violet));
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .term-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .term-card:hover::before { opacity: 1; }
+
+    @keyframes riseIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+    .term-badge {
+      font-size: 9px;
+      font-family: var(--mono);
+      letter-spacing: 1.5px;
+      background: rgba(79,156,249,0.12);
+      color: var(--blue);
+      border-radius: 4px;
+      padding: 2px 8px;
+      display: inline-block;
+      margin-bottom: 10px;
+      border: 1px solid rgba(79,156,249,0.2);
+    }
+
+    .term-en { font-weight: 700; font-size: 16px; color: var(--text); margin-bottom: 6px; }
+    .term-lang { font-size: 20px; color: var(--cyan); font-weight: 600; margin-bottom: 8px; font-family: 'Noto Sans Devanagari', var(--font); line-height: 1.4; }
+    .term-meaning { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+    /* ═══════════════════════════════════════════════════════════
+   EXAM OUTPUT
+═══════════════════════════════════════════════════════════ */
+    .summary-block {
+      background: linear-gradient(135deg, rgba(34,211,238,0.06), rgba(79,156,249,0.06));
+      border: 1px solid rgba(34,211,238,0.15);
+      border-radius: var(--r-md);
+      padding: 20px 22px;
+      font-size: 15px;
+      line-height: 1.85;
+      color: var(--text);
+    }
+
+    .difficulty-pill { display: inline-flex; align-items: center; padding: 4px 14px; border-radius: 50px; font-size: 12px; font-weight: 600; margin-left: 10px; vertical-align: middle; }
+    .diff-Easy { background: rgba(52,211,153,0.15); color: var(--green); border: 1px solid rgba(52,211,153,0.25); }
+    .diff-Medium { background: rgba(251,191,36,0.15); color: var(--amber); border: 1px solid rgba(251,191,36,0.25); }
+    .diff-Hard { background: rgba(251,113,133,0.15); color: var(--rose); border: 1px solid rgba(251,113,133,0.25); }
+
+    .keyword-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+    .pill {
+      padding: 5px 14px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-family: var(--mono);
+      font-weight: 500;
+      background: rgba(167,139,250,0.1);
+      color: var(--violet);
+      border: 1px solid rgba(167,139,250,0.2);
+      cursor: default;
+      transition: all .15s;
+    }
+
+    .pill:hover { background: rgba(167,139,250,0.2); }
+
+    .flow-wrap { overflow-x: auto; padding-bottom: 8px; }
+
+    .flow-row { display: flex; align-items: center; flex-wrap: nowrap; gap: 0; min-width: max-content; }
+
+    .flow-node {
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      border-radius: var(--r-sm);
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      transition: all .2s;
+      animation: riseIn .4s ease both;
+      white-space: nowrap;
+    }
+
+    .flow-node:hover { border-color: var(--blue); color: var(--blue); }
+    .flow-arr { padding: 0 10px; color: var(--muted2); font-size: 16px; }
+
+    .steps-list { list-style: none; }
+
+    .step-item { display: flex; gap: 16px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid var(--border); animation: riseIn .3s ease both; }
+    .step-item:last-child { border-bottom: none; }
+
+    .step-num {
+      min-width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(79,156,249,0.3);
+    }
+
+    .step-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .step-detail { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ═══════════════════════════════════════════════════════════
+   ASK AI CHAT
+═══════════════════════════════════════════════════════════ */
+    .chat-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.7;
+      display: none;
+      min-height: 60px;
+      position: relative;
+    }
+
+    .chat-box::before {
+      content: '✦ TechMorph AI';
+      position: absolute;
+      top: -10px;
+      left: 14px;
+      background: var(--bg2);
+      padding: 0 8px;
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--blue);
+      letter-spacing: 1px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+   VOICE INDICATOR
+═══════════════════════════════════════════════════════════ */
+    .voice-ind { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+
+    .v-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      display: none;
+      animation: vpulse .9s ease infinite;
+    }
+
+    @keyframes vpulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.5)} }
+
+    /* ═══════════════════════════════════════════════════════════
+   ERROR BOX
+═══════════════════════════════════════════════════════════ */
+    .err-box {
+      background: rgba(251,113,133,0.08);
+      border: 1px solid rgba(251,113,133,0.25);
+      border-radius: var(--r-sm);
+      padding: 13px 18px;
+      color: var(--rose);
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════════════ */
+    .empty { text-align: center; padding: 52px 24px; color: var(--muted2); }
+    .empty-icon { font-size: 38px; margin-bottom: 12px; opacity: 0.6; }
+    .empty-text { font-size: 14px; }
+
+    /* ═══════════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════════ */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: 50px;
+      padding: 12px 22px;
+      font-size: 13px;
+      opacity: 0;
+      transition: all .3s;
+      z-index: 999;
+      pointer-events: none;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      white-space: nowrap;
+    }
+
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.err { border-color: var(--rose); color: var(--rose); }
+    .toast.ok { border-color: var(--green); color: var(--green); }
+
+    /* ═══════════════════════════════════════════════════════════
+   HISTORY MODAL
+═══════════════════════════════════════════════════════════ */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7,11,20,0.8);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--r-xl);
+      padding: 32px;
+      width: 90%;
+      max-width: 680px;
+      max-height: 82vh;
+      overflow-y: auto;
+      transform: translateY(24px) scale(0.97);
+      transition: transform .3s;
+    }
+
+    .overlay.open .modal { transform: translateY(0) scale(1); }
+    .modal::-webkit-scrollbar { width: 4px; }
+    .modal::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+    .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .modal-head h2 { font-size: 18px; font-weight: 700; }
+
+    .modal-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; transition: color .2s; }
+    .modal-close:hover { color: var(--text); }
+
+    .h-entry { padding: 14px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted); display: flex; align-items: flex-start; gap: 12px; }
+    .h-entry:last-child { border-bottom: none; }
+
+    .h-mode-tag { display: inline-block; padding: 2px 10px; border-radius: 50px; font-size: 10px; font-family: var(--mono); letter-spacing: 0.5px; flex-shrink: 0; }
+    .h-mode-tag.translate { background: rgba(79,156,249,0.1); color: var(--blue); border: 1px solid rgba(79,156,249,0.2); }
+    .h-mode-tag.ocr_translate { background: rgba(34,211,238,0.1); color: var(--cyan); border: 1px solid rgba(34,211,238,0.2); }
+    .h-mode-tag.exam { background: rgba(167,139,250,0.1); color: var(--violet); border: 1px solid rgba(167,139,250,0.2); }
+
+    .h-body { flex: 1; }
+    .h-preview { color: var(--text); font-size: 13px; line-height: 1.5; }
+    .h-meta { font-size: 11px; color: var(--muted2); margin-top: 4px; }
+
+    .h-del { background: none; border: none; color: var(--muted2); cursor: pointer; font-size: 14px; flex-shrink: 0; padding: 4px; transition: color .2s; }
+    .h-del:hover { color: var(--rose); }
+
+    /* ═══════════════════════════════════════════════════════════
+   STAT CARDS
+═══════════════════════════════════════════════════════════ */
+    .stat-row { display: flex; gap: 14px; margin-bottom: 28px; flex-wrap: wrap; }
+
+    .stat-card { flex: 1; min-width: 140px; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px 18px; transition: border-color .2s; }
+    .stat-card:hover { border-color: var(--border2); }
+
+    .stat-num { font-size: 24px; font-weight: 700; line-height: 1; }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: 0.5px; }
+
+    .c-blue { color: var(--blue); }
+    .c-cyan { color: var(--cyan); }
+    .c-violet { color: var(--violet); }
+    .c-green { color: var(--green); }
+
+    /* TTS speaking indicator */
+    .tts-status {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--cyan);
+      font-family: var(--mono);
+    }
+    .tts-status.active { display: inline-flex; }
+    .tts-bar {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+    }
+    .tts-bar span {
+      display: block;
+      width: 3px;
+      background: var(--cyan);
+      border-radius: 2px;
+      animation: barBounce 0.8s ease infinite;
+    }
+    .tts-bar span:nth-child(1) { height: 8px; animation-delay: 0s; }
+    .tts-bar span:nth-child(2) { height: 14px; animation-delay: 0.1s; }
+    .tts-bar span:nth-child(3) { height: 10px; animation-delay: 0.2s; }
+    .tts-bar span:nth-child(4) { height: 16px; animation-delay: 0.15s; }
+    .tts-bar span:nth-child(5) { height: 8px; animation-delay: 0.05s; }
+
+    @keyframes barBounce {
+      0%, 100% { transform: scaleY(0.5); opacity: 0.6; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+  </style>
+</head>
+
+<body>
+  <div class="bg-mesh">
+    <div class="bg-dot"></div>
+  </div>
+  <div class="grain"></div>
+
+  <div class="wrapper">
+
+    <!-- ── HEADER ──────────────────────────────────────────────── -->
+    <header>
+      <a class="logo" href="#">
+        <div class="logo-mark">⚡</div>
+        <div class="logo-text">
+          <h1>Tech<em>Morph</em></h1>
+          <p>TECHNICAL LANGUAGE TRANSFORMER</p>
+        </div>
+      </a>
+      <div class="header-actions">
+        <span class="btn-ghost" style="cursor:default">
+          <span class="status-dot"></span>
+          <span style="color:var(--green);font-size:12px">Gemini 2.5 Flash</span>
+        </span>
+        <button class="btn-ghost" onclick="openHistory()">
+          <span>📋</span> History
+        </button>
+      </div>
+    </header>
+
+    <!-- ── STAT ROW ────────────────────────────────────────────── -->
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-num c-blue">10</div>
+        <div class="stat-label">LANGUAGES SUPPORTED</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num c-cyan">OCR</div>
+        <div class="stat-label">IMAGE TEXT EXTRACTION</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num c-violet">AI</div>
+        <div class="stat-label">EXAM NOTES GENERATOR</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num c-green">TTS</div>
+        <div class="stat-label">TEXT-TO-SPEECH</div>
+      </div>
+    </div>
+
+    <!-- ── TAB BAR ─────────────────────────────────────────────── -->
+    <div class="tab-bar">
+      <button class="tab active" onclick="switchTab('ocr-tab',this)">📸 Image → Translate</button>
+      <button class="tab" onclick="switchTab('text-tab',this)">✏️ Text → Translate</button>
+      <button class="tab" onclick="switchTab('exam-tab',this)">📚 Exam Mode</button>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════
+       PANEL 1 — IMAGE → TRANSLATE
+  ════════════════════════════════════════════════════════════ -->
+    <div id="ocr-tab" class="panel active">
+      <div class="grid-2">
+
+        <!-- Left: Upload -->
+        <div>
+          <div class="card">
+            <p class="section-label">Upload Image</p>
+            <div class="upload-zone" id="dropzone"
+              ondragover="event.preventDefault();this.classList.add('drag')"
+              ondragleave="this.classList.remove('drag')"
+              ondrop="handleDrop(event)">
+              <input type="file" id="ocrImage" accept="image/*"
+                onchange="previewImg(this,'previewImg1','uploadName1')" />
+              <div class="upload-icon">🖼️</div>
+              <div class="upload-title"><span>Click to upload</span> or drag &amp; drop</div>
+              <div class="upload-sub">JPG, PNG, WEBP · Max 10 MB</div>
+              <img id="previewImg1" class="upload-preview" />
+              <div id="uploadName1" class="upload-name"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="field">
+              <label class="field-label">Target Language</label>
+              <select id="ocrLang">
+                <option value="hi">🇮🇳 Hindi</option>
+                <option value="mr">🇮🇳 Marathi</option>
+                <option value="te">🇮🇳 Telugu</option>
+                <option value="ta">🇮🇳 Tamil</option>
+                <option value="kn">🇮🇳 Kannada</option>
+                <option value="gu">🇮🇳 Gujarati</option>
+                <option value="bn">🇮🇳 Bengali</option>
+                <option value="pa">🇮🇳 Punjabi</option>
+                <option value="ur">🇵🇰 Urdu</option>
+                <option value="ml">🇮🇳 Malayalam</option>
+              </select>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="doOcrTranslate()" id="ocrBtn">
+                <div class="spinner" id="ocrSpinner"></div>
+                ⚡ Extract &amp; Translate
+              </button>
+            </div>
+            <div class="err-box" id="ocrErr"></div>
+          </div>
+        </div>
+
+        <!-- Right: Results -->
+        <div>
+          <div class="card">
+            <p class="section-label">Extracted Text (OCR)</p>
+            <div class="empty" id="ocrEmptyState">
+              <div class="empty-icon">📝</div>
+              <div class="empty-text">Upload an image to extract text</div>
+            </div>
+            <div class="ocr-box" id="ocrText"></div>
+          </div>
+
+          <div class="card" style="min-height:220px">
+            <p class="section-label">Technical Terms</p>
+            <div class="empty" id="ocrTermsEmpty">
+              <div class="empty-icon">🔤</div>
+              <div class="empty-text">Translated terms will appear here</div>
+            </div>
+            <div id="ocrTermsOut"></div>
+            <div id="ocrVoiceRow" style="display:none">
+              <div class="btn-row" style="margin-top:14px">
+                <button class="btn btn-cyan" onclick="speakTerms('ocr')" id="ocrSpeakBtn">🔊 Speak Terms</button>
+                <button class="btn danger" onclick="stopTTS('ocr')" id="ocrStopBtn" style="display:none">⛔ Stop</button>
+                <div class="tts-status" id="ocrTtsStatus">
+                  <div class="tts-bar">
+                    <span></span><span></span><span></span><span></span><span></span>
+                  </div>
+                  Speaking…
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════
+       PANEL 2 — TEXT → TRANSLATE
+  ════════════════════════════════════════════════════════════ -->
+    <div id="text-tab" class="panel">
+      <div class="grid-2">
+
+        <div>
+          <div class="card">
+            <p class="section-label">Input Text</p>
+            <textarea id="textInput"
+              placeholder="Paste any technical paragraph here…&#10;&#10;Example: The microprocessor uses RISC architecture with 32-bit registers and a 4 GHz clock cycle, featuring L1 and L2 cache for fast memory access..."></textarea>
+          </div>
+          <div class="card">
+            <div class="field">
+              <label class="field-label">Target Language</label>
+              <select id="textLang">
+                <option value="hi">🇮🇳 Hindi</option>
+                <option value="mr">🇮🇳 Marathi</option>
+                <option value="te">🇮🇳 Telugu</option>
+                <option value="ta">🇮🇳 Tamil</option>
+                <option value="kn">🇮🇳 Kannada</option>
+                <option value="gu">🇮🇳 Gujarati</option>
+                <option value="bn">🇮🇳 Bengali</option>
+                <option value="pa">🇮🇳 Punjabi</option>
+                <option value="ur">🇵🇰 Urdu</option>
+                <option value="ml">🇮🇳 Malayalam</option>
+              </select>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="doTextTranslate()" id="textBtn">
+                <div class="spinner" id="textSpinner"></div>
+                ⚡ Translate Keywords
+              </button>
+            </div>
+            <div class="err-box" id="textErr"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" style="min-height:360px">
+            <p class="section-label">Technical Terms</p>
+            <div class="empty" id="textTermsEmpty">
+              <div class="empty-icon">🔤</div>
+              <div class="empty-text">Enter text and click Translate</div>
+            </div>
+            <div id="textTermsOut"></div>
+            <div id="textVoiceRow" style="display:none">
+              <div class="btn-row" style="margin-top:14px">
+                <button class="btn btn-cyan" onclick="speakTerms('text')" id="textSpeakBtn">🔊 Speak Terms</button>
+                <button class="btn danger" onclick="stopTTS('text')" id="textStopBtn" style="display:none">⛔ Stop</button>
+                <div class="tts-status" id="textTtsStatus">
+                  <div class="tts-bar">
+                    <span></span><span></span><span></span><span></span><span></span>
+                  </div>
+                  Speaking…
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════
+       PANEL 3 — EXAM MODE
+  ════════════════════════════════════════════════════════════ -->
+    <div id="exam-tab" class="panel">
+      <div class="card">
+        <p class="section-label">Input Paragraph</p>
+        <textarea id="examInput" style="min-height:120px"
+          placeholder="Paste any paragraph or chapter content here to generate exam-ready notes with summary, flow diagram, and key terms…"></textarea>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="doExam()" id="examBtn">
+            <div class="spinner" id="examSpinner"></div>
+            📚 Generate Exam Notes
+          </button>
+          <button class="btn btn-outline" onclick="speakExam()" id="examSpeakBtn">🔊 Read Aloud</button>
+          <button class="btn danger" onclick="stopTTS('exam')" id="examStopBtn" style="display:none">⛔ Stop</button>
+          <div class="tts-status" id="examTtsStatus">
+            <div class="tts-bar">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            Speaking…
+          </div>
+        </div>
+        <div class="err-box" id="examErr"></div>
+      </div>
+
+      <div id="examOut" style="display:none">
+        <!-- Summary -->
+        <div class="card">
+          <p class="section-label">
+            Summary
+            <span id="diffBadge"></span>
+          </p>
+          <div class="summary-block" id="examSummary"></div>
+          <p class="section-label" style="margin-top:20px">Key Terms</p>
+          <div class="keyword-pills" id="examKeywords"></div>
+        </div>
+
+        <!-- Flow -->
+        <div class="card">
+          <p class="section-label">Step-by-Step Flow</p>
+          <div class="flow-wrap">
+            <div class="flow-row" id="flowRow"></div>
+          </div>
+        </div>
+
+        <!-- Steps -->
+        <div class="card">
+          <p class="section-label">Detailed Steps</p>
+          <ul class="steps-list" id="examSteps"></ul>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /wrapper -->
+
+  <!-- ── HISTORY MODAL ──────────────────────────────────────── -->
+  <div class="overlay" id="histOverlay" onclick="overlayClick(event)">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>📋 History</h2>
+        <button class="modal-close" onclick="closeHistory()">✕</button>
+      </div>
+      <div id="histList">
+        <p style="color:var(--muted)">Loading…</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════ -->
+  <script>
+    /* ── State ─────────────────────────────────────────────── */
+    let ocrTermsData = [], textTermsData = [], examData = null;
+    let currentAudio = null;
+
+    /* ── Tab switch ────────────────────────────────────────── */
+    function switchTab(id, btn) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    /* ── Image preview ─────────────────────────────────────── */
+    function previewImg(input, imgId, nameId) {
+      const file = input.files[0];
+      if (!file) return;
+      const img = document.getElementById(imgId);
+      img.src = URL.createObjectURL(file);
+      img.style.display = 'block';
+      const nm = document.getElementById(nameId);
+      nm.textContent = '📎 ' + file.name;
+      nm.style.display = 'block';
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('dropzone').classList.remove('drag');
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      const inp = document.getElementById('ocrImage');
+      inp.files = dt.files;
+      previewImg(inp, 'previewImg1', 'uploadName1');
+    }
+
+    /* ── OCR + Translate ───────────────────────────────────── */
+    async function doOcrTranslate() {
+      const file = document.getElementById('ocrImage').files[0];
+      if (!file) { toast('Please upload an image first', 'err'); return; }
+      const lang = document.getElementById('ocrLang').value;
+      setLoad('ocr', true);
+      hideErr('ocrErr');
+
+      const form = new FormData();
+      form.append('image', file);
+      form.append('target_lang', lang);
+
+      try {
+        const res = await fetch('/ocr_translate', { method: 'POST', body: form });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        showOcrText(data.ocr_text);
+        ocrTermsData = data.terms;
+        renderTerms('ocrTermsOut', 'ocrTermsEmpty', data.terms, data.lang);
+        document.getElementById('ocrVoiceRow').style.display = 'flex';
+        toast('Extracted & translated successfully', 'ok');
+      } catch (e) {
+        showErr('ocrErr', e.message);
+      } finally {
+        setLoad('ocr', false);
+      }
+    }
+
+    function showOcrText(text) {
+      const box = document.getElementById('ocrText');
+      box.textContent = text;
+      box.style.display = 'block';
+      document.getElementById('ocrEmptyState').style.display = 'none';
+    }
+
+    /* ── Text Translate ────────────────────────────────────── */
+    async function doTextTranslate() {
+      const text = document.getElementById('textInput').value.trim();
+      if (!text) { toast('Please enter some text', 'err'); return; }
+      const lang = document.getElementById('textLang').value;
+      setLoad('text', true);
+      hideErr('textErr');
+
+      try {
+        const res = await fetch('/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, target_lang: lang })
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        textTermsData = data.terms;
+        renderTerms('textTermsOut', 'textTermsEmpty', data.terms, data.lang);
+        document.getElementById('textVoiceRow').style.display = 'flex';
+        toast('Keywords translated', 'ok');
+      } catch (e) {
+        showErr('textErr', e.message);
+      } finally {
+        setLoad('text', false);
+      }
+    }
+
+    /* ── Render term cards ─────────────────────────────────── */
+    function renderTerms(outId, emptyId, terms, langName) {
+      const el = document.getElementById(outId);
+      document.getElementById(emptyId).style.display = 'none';
+      if (!terms || terms.length === 0) {
+        el.innerHTML = '<p style="color:var(--muted);font-size:14px;margin-top:8px">No technical terms found.</p>';
+        return;
+      }
+      el.innerHTML = `<div class="terms-grid">${terms.map((t, i) => `
+        <div class="term-card" style="animation-delay:${i * 0.05}s">
+          <div class="term-badge">TECHNICAL · ${esc(langName)}</div>
+          <div class="term-en">${esc(t.english)}</div>
+          <div class="term-lang">${esc(t.translated)}</div>
+          <div class="term-meaning">${esc(t.meaning)}</div>
+        </div>
+      `).join('')}</div>`;
+    }
+
+    /* ── Exam Mode ─────────────────────────────────────────── */
+    async function doExam() {
+      const text = document.getElementById('examInput').value.trim();
+      if (!text) { toast('Please enter a paragraph', 'err'); return; }
+      setLoad('exam', true);
+      hideErr('examErr');
+      document.getElementById('examOut').style.display = 'none';
+
+      try {
+        const res = await fetch('/exam', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error + (data.raw ? ' — ' + data.raw.substring(0, 120) : ''));
+
+        examData = data;
+        renderExam(data);
+        toast('Exam notes generated', 'ok');
+      } catch (e) {
+        showErr('examErr', e.message);
+      } finally {
+        setLoad('exam', false);
+      }
+    }
+
+    function renderExam(d) {
+      document.getElementById('examSummary').textContent = d.summary;
+
+      const diff = d.difficulty || 'Medium';
+      document.getElementById('diffBadge').innerHTML =
+        `<span class="difficulty-pill diff-${diff}">${diff}</span>`;
+
+      document.getElementById('examKeywords').innerHTML =
+        (d.keywords || []).map(k => `<span class="pill">${esc(k)}</span>`).join('');
+
+      const flow = document.getElementById('flowRow');
+      flow.innerHTML = (d.steps || []).map((s, i) => `
+        <div class="flow-node" style="animation-delay:${i * 0.07}s">${esc(s.title)}</div>
+        ${i < d.steps.length - 1 ? '<div class="flow-arr">→</div>' : ''}
+      `).join('');
+
+      document.getElementById('examSteps').innerHTML =
+        (d.steps || []).map((s, i) => `
+          <li class="step-item" style="animation-delay:${i * 0.055}s">
+            <div class="step-num">${s.step}</div>
+            <div>
+              <div class="step-title">${esc(s.title)}</div>
+              <div class="step-detail">${esc(s.detail)}</div>
+            </div>
+          </li>
+        `).join('');
+
+      document.getElementById('examOut').style.display = 'block';
+      document.getElementById('examOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       TTS — ElevenLabs via /tts endpoint
+       FIX: was using undefined `utterance` variable
+           + missing speaking indicator logic
+    ══════════════════════════════════════════════════════════ */
+
+    /**
+     * Core TTS player. Calls /tts, plays audio, shows indicators.
+     * @param {string} text      - text to speak
+     * @param {string} mode      - 'ocr' | 'text' | 'exam'  (used to find status elements)
+     */
+    async function playTTS(text, mode) {
+      // Stop any existing audio first
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+      }
+
+      // Show speaking indicator
+      setTTSStatus(mode, true);
+
+      try {
+        const res = await fetch('/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'TTS failed' }));
+          throw new Error(err.error || 'TTS request failed');
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        currentAudio = audio;
+
+        audio.onended = () => {
+          setTTSStatus(mode, false);
+          currentAudio = null;
+          URL.revokeObjectURL(url);
+        };
+
+        audio.onerror = () => {
+          setTTSStatus(mode, false);
+          currentAudio = null;
+          URL.revokeObjectURL(url);
+          toast('Audio playback error', 'err');
+        };
+
+        await audio.play();
+
+      } catch (e) {
+        setTTSStatus(mode, false);
+        toast('TTS error: ' + e.message, 'err');
+      }
+    }
+
+    /**
+     * Show/hide the animated speaking indicator and stop button.
+     */
+    function setTTSStatus(mode, on) {
+      const statusEl = document.getElementById(mode + 'TtsStatus');
+      const stopBtn  = document.getElementById(mode + 'StopBtn');
+      const speakBtn = document.getElementById(mode + 'SpeakBtn');
+
+      if (statusEl) statusEl.classList.toggle('active', on);
+      if (stopBtn)  stopBtn.style.display  = on ? 'inline-flex' : 'none';
+      if (speakBtn) speakBtn.disabled = on;
+    }
+
+    /**
+     * Stop playback for a given mode.
+     */
+    function stopTTS(mode) {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+      }
+      setTTSStatus(mode, false);
+    }
+
+    /* ── Speak terms (OCR / Text panels) ─────────────────── */
+    function speakTerms(mode) {
+      const terms = mode === 'ocr' ? ocrTermsData : textTermsData;
+      if (!terms || !terms.length) { toast('No terms to speak', 'err'); return; }
+      const txt = terms.map(t => `${t.english}: ${t.translated}. ${t.meaning}`).join('. ');
+      playTTS(txt, mode);
+    }
+
+    /* ── Speak exam notes ────────────────────────────────── */
+    function speakExam() {
+      if (!examData) { toast('Generate exam notes first', 'err'); return; }
+      const txt = `Summary: ${examData.summary}. Steps: ${
+        (examData.steps || []).map(s => `${s.step}. ${s.title}. ${s.detail}`).join('. ')
+      }`;
+      playTTS(txt, 'exam');
+    }
+
+    /* ── History modal ─────────────────────────────────────── */
+    async function openHistory() {
+      document.getElementById('histOverlay').classList.add('open');
+      const el = document.getElementById('histList');
+      el.innerHTML = '<p style="color:var(--muted)">Loading…</p>';
+      try {
+        const res = await fetch('/history');
+        const rows = await res.json();
+        if (!rows.length) {
+          el.innerHTML = '<p style="color:var(--muted)">No history yet. Start translating!</p>';
+          return;
+        }
+        el.innerHTML = rows.map(r => {
+          const preview = r.input_text.length > 90 ? r.input_text.substring(0, 90) + '…' : r.input_text;
+          const lang = r.target_lang ? ` → ${r.target_lang}` : '';
+          const date = r.created_at.replace('T', ' ').substring(0, 19);
+          return `<div class="h-entry">
+            <span class="h-mode-tag ${r.mode}">${r.mode}</span>
+            <div class="h-body">
+              <div class="h-preview">${esc(preview)}${lang ? `<span style="color:var(--muted2);font-size:11px"> ${esc(lang)}</span>` : ''}</div>
+              <div class="h-meta">${date}</div>
+            </div>
+            <button class="h-del" onclick="delHistory(${r.id}, this)" title="Delete">🗑</button>
+          </div>`;
+        }).join('');
+      } catch (e) {
+        el.innerHTML = '<p style="color:var(--rose)">Failed to load history.</p>';
+      }
+    }
+
+    async function delHistory(id, btn) {
+      try {
+        await fetch('/history/' + id, { method: 'DELETE' });
+        btn.closest('.h-entry').remove();
+        toast('Entry deleted', 'ok');
+      } catch (e) {
+        toast('Delete failed', 'err');
+      }
+    }
+
+    function closeHistory() { document.getElementById('histOverlay').classList.remove('open'); }
+    function overlayClick(e) { if (e.target === document.getElementById('histOverlay')) closeHistory(); }
+
+    /* ── Helpers ───────────────────────────────────────────── */
+    function setLoad(mode, on) {
+      const btn = document.getElementById(mode + 'Btn');
+      const sp  = document.getElementById(mode + 'Spinner');
+      btn.disabled = on;
+      sp.style.display = on ? 'block' : 'none';
+    }
+
+    function showErr(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = '⚠️ ' + msg;
+      el.style.display = 'block';
+    }
+
+    function hideErr(id) { document.getElementById(id).style.display = 'none'; }
+
+    function toast(msg, type) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `toast ${type || ''} show`;
+      clearTimeout(t._t);
+      t._t = setTimeout(() => { t.className = 'toast'; }, 3000);
+    }
+
+    function esc(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+  </script>
+</body>
+
+</html>
